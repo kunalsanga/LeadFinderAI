@@ -132,19 +132,15 @@ async def process_search(task_id: str, query: str):
                 # LLM Profiling
                 profile = await analyze_company_profile(lead["Company Name"], web_data.get("text", ""))
                 
-                # Strict Filters
-                if profile.get("company_age", 0) > 5 and profile.get("company_age", 0) != 0:
-                    continue
-                if not profile.get("startup", False) or profile.get("confidence", 0) < 0.70:
-                    continue
+                # Strict Filters (Relaxed to maximize leads and rely on scoring for ranking)
                 if not profile.get("is_d2c", False):
-                    continue
+                    continue # Reject if clearly not a consumer brand
                 if profile.get("is_large_enterprise", False):
-                    continue
+                    continue # Reject if large enterprise
                     
                 # Populate fields
-                lead["D2C"] = True
-                lead["Startup"] = True
+                lead["D2C"] = profile.get("is_d2c", True)
+                lead["Startup"] = profile.get("startup", False)
                 lead["Founded Year"] = profile.get("founded_year", 0)
                 lead["Company Age"] = profile.get("company_age", 0)
                 lead["Meta Ads Probability"] = profile.get("meta_ads_probability", 50)

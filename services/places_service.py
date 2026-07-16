@@ -22,7 +22,16 @@ async def enrich_with_places(company_name: str) -> Optional[Dict]:
         "X-Goog-FieldMask": "places.displayName,places.websiteUri,places.nationalPhoneNumber,places.formattedAddress,places.rating,places.userRatingCount,places.primaryType"
     }
     payload = {
-        "textQuery": company_name
+        "textQuery": f"{company_name} headquarters",
+        "locationBias": {
+            "circle": {
+                "center": {
+                    "latitude": 12.9716,
+                    "longitude": 77.5946
+                },
+                "radius": 50000.0
+            }
+        }
     }
     
     try:

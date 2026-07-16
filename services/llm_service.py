@@ -50,3 +50,45 @@ Text:
     except Exception as e:
         print(f"LLM Extraction Error: {e}")
         return []
+
+async def is_company_d2c(company_name: str, website_text: str = "") -> bool:
+    """Uses Gemini to determine if a company is a Direct-to-Consumer (D2C) brand."""
+    if not settings.GEMINI_API_KEY or "your_" in settings.GEMINI_API_KEY:
+        return True
+    try:
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        prompt = f"""
+Is the company '{company_name}' a Direct-to-Consumer (D2C) brand?
+Website Context: {website_text[:1000]}
+Return ONLY 'YES' or 'NO'.
+"""
+        response = client.models.generate_content(
+            model='gemini-3.5-flash',
+            contents=prompt,
+        )
+        return "YES" in response.text.upper()
+    except Exception as e:
+        print(f"LLM D2C Check Error: {e}")
+        return True # Default to True to not lose leads on API error
+
+async def extract_founder(company_name: str, website_text: str) -> str:
+    """Uses Gemini to extract the Founder or CEO from the website text."""
+    if not settings.GEMINI_API_KEY or "your_" in settings.GEMINI_API_KEY:
+        return ""
+    try:
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        prompt = f"""
+Given the text from the official website of '{company_name}', extract the name of the Founder or CEO.
+If not found, return 'Not Found'. Do not return any other text.
+Website Text:
+{website_text[:5000]}
+"""
+        response = client.models.generate_content(
+            model='gemini-3.5-flash',
+            contents=prompt,
+        )
+        ans = response.text.strip()
+        return "" if "Not Found" in ans else ans
+    except Exception as e:
+        print(f"LLM Founder Extract Error: {e}")
+        return ""

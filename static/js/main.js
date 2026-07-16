@@ -107,16 +107,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (lead['Lead Score'] >= 70) scoreClass = 'score-high';
             else if (lead['Lead Score'] >= 40) scoreClass = 'score-medium';
             
-            let metaHtml = lead['Meta Ads (Yes/No)'] === 'Yes' ? '<span class="badge bg-success"><i class="fa-brands fa-meta me-1"></i>Yes</span>' : '<span class="badge bg-secondary">No</span>';
-
+            let linkedInHtml = lead.LinkedIn ? `<a href="${lead.LinkedIn}" target="_blank" class="text-primary"><i class="fa-brands fa-linkedin"></i></a>` : '-';
+            let instagramHtml = lead.Instagram ? `<a href="${lead.Instagram}" target="_blank" class="text-danger"><i class="fa-brands fa-instagram"></i></a>` : '-';
+            
             tr.innerHTML = `
                 <td class="fw-semibold text-white">${lead['Company Name']}</td>
-                <td class="text-muted"><small>${lead['Category']}</small></td>
                 <td>${websiteHtml}</td>
                 <td>${lead['Phone'] || '-'}</td>
-                <td>${lead['Email'] ? `<a href="mailto:${lead['Email'].split(',')[0]}" class="text-decoration-none text-light">${lead['Email'].split(',')[0]}</a>` : '-'}</td>
-                <td>${metaHtml}</td>
-                <td>${lead['Google Rating'] > 0 ? `<i class="fa-solid fa-star text-warning me-1"></i>${lead['Google Rating']} <small class="text-muted">(${lead['Reviews']})</small>` : '-'}</td>
+                <td>${lead['Email'] ? `<a href="mailto:${lead['Email'].split(',')[0]}" class="text-decoration-none text-light"><i class="fa-solid fa-envelope"></i></a>` : '-'}</td>
+                <td>${linkedInHtml}</td>
+                <td>${instagramHtml}</td>
+                <td>${lead['Founder'] || '-'}</td>
                 <td><span class="score-badge ${scoreClass}">${lead['Lead Score']}/100</span></td>
             `;
             resultsTableBody.appendChild(tr);

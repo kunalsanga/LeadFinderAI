@@ -54,6 +54,13 @@ async def process_search(task_id: str, query: str):
             
         task_manager.update_status(task_id, f"Extracted {total_companies} unique companies. Enriching data...", 45)
         
+        # Define allowed place types
+        ALLOWED_TYPES = {
+            "clothing_store", "corporate_office", "manufacturer", "store", 
+            "beauty_salon", "cosmetics_store", "furniture_store", "home_goods_store", 
+            "electronics_store", "food", "shopping"
+        }
+        
         enriched_leads = []
         for index, company_name in enumerate(companies_list):
             progress = 45 + int(55 * (index / total_companies))
@@ -63,6 +70,17 @@ async def process_search(task_id: str, query: str):
             place_data = await enrich_with_places(company_name)
             if not place_data:
                 continue # Skip if no place found
+                
+            # Type filtering
+            p_type = place_data.get("type", "").lower()
+            if p_type not in ALLOWED_TYPES and p_type != "business":
+                continue # Skip rejected types
+                
+            # Fuzzy matching
+            from difflib import SequenceMatcher
+            similarity = SequenceMatcher(None, company_name.lower(), place_data.get("name", "").lower()).ratio()
+            if similarity < 0.8:
+                continue # Skip if name is too different
                 
             lead = {
                 "Company Name": place_data.get("name", company_name),
@@ -78,14 +96,38 @@ async def process_search(task_id: str, query: str):
             ads_data = await check_meta_ads(lead["Company Name"])
             lead["Meta Ads (Yes/No)"] = "Yes" if ads_data.get("running_ads") else "No"
             
-            # 3. Email Scraping
+            # 3. Website Scraping (Socials, Contact, D2C, Founder, Email)
+            lead["LinkedIn"] = ""
+            lead["Instagram"] = ""
+            lead["Contact Us"] = ""
+            lead["Founder"] = ""
+            lead["Email"] = ""
+            lead["D2C (Yes/No)"] = "No"
+            
             if lead["Website"]:
+                from services.scraper_service import scrape_company_website
+                from services.llm_service import is_company_d2c, extract_founder
+                
+                web_data = await scrape_company_website(lead["Website"])
+                lead["LinkedIn"] = web_data.get("linkedin", "")
+                lead["Instagram"] = web_data.get("instagram", "")
+                lead["Contact Us"] = web_data.get("contact_us", "")
+                
+                # Check D2C
+                is_d2c = await is_company_d2c(lead["Company Name"], web_data.get("text", ""))
+                if not is_d2c:
+                    continue # Skip if not a D2C brand
+                lead["D2C (Yes/No)"] = "Yes"
+                
+                # Extract founder
+                lead["Founder"] = await extract_founder(lead["Company Name"], web_data.get("text", ""))
+                
+                # Emails
                 emails = await scrape_emails(lead["Website"])
                 lead["Email"] = ", ".join(emails) if emails else ""
-            else:
-                lead["Email"] = ""
                 
             # 4. Lead Scoring
+            lead["Place Type"] = p_type # pass to scorer
             lead["Lead Score"] = calculate_lead_score(lead)
             
             enriched_leads.append(lead)

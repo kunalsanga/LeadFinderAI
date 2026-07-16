@@ -51,44 +51,56 @@ Text:
         print(f"LLM Extraction Error: {e}")
         return []
 
-async def is_company_d2c(company_name: str, website_text: str = "") -> bool:
-    """Uses Gemini to determine if a company is a Direct-to-Consumer (D2C) brand."""
-    if not settings.GEMINI_API_KEY or "your_" in settings.GEMINI_API_KEY:
-        return True
-    try:
-        client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        prompt = f"""
-Is the company '{company_name}' a Direct-to-Consumer (D2C) brand?
-Website Context: {website_text[:1000]}
-Return ONLY 'YES' or 'NO'.
-"""
-        response = client.models.generate_content(
-            model='gemini-3.5-flash',
-            contents=prompt,
-        )
-        return "YES" in response.text.upper()
-    except Exception as e:
-        print(f"LLM D2C Check Error: {e}")
-        return True # Default to True to not lose leads on API error
+class CompanyProfile(BaseModel):
+    founded_year: int = Field(description="Year the company was founded (e.g. 2021). Use 0 if unknown.")
+    company_age: int = Field(description="Age of the company in years. Use 0 if unknown.")
+    startup: bool = Field(description="True if this is a startup company, False if it is a large enterprise, franchise, or non-startup.")
+    confidence: float = Field(description="Confidence score between 0.0 and 1.0 for the startup assessment.")
+    is_d2c: bool = Field(description="True if this is a Direct-to-Consumer (D2C) brand, False otherwise.")
+    d2c_confidence: float = Field(description="Confidence score between 0.0 and 1.0 for the D2C assessment.")
+    employee_count: str = Field(description="Estimated employee count range (e.g., '10-50', '500+').")
+    is_large_enterprise: bool = Field(description="True if the company is a large enterprise (like Amazon, Flipkart, Infosys, etc.).")
+    meta_ads_probability: int = Field(description="Probability (0-100) that this company invests or will invest in Meta Ads.")
+    founder_name: str = Field(description="Name of the Founder or CEO. Return empty string if unknown.")
 
-async def extract_founder(company_name: str, website_text: str) -> str:
-    """Uses Gemini to extract the Founder or CEO from the website text."""
+async def analyze_company_profile(company_name: str, website_text: str) -> dict:
+    """Uses Gemini to comprehensively profile a company based on its website text."""
     if not settings.GEMINI_API_KEY or "your_" in settings.GEMINI_API_KEY:
-        return ""
+        # Mock mode if no valid key
+        return {
+            "founded_year": 2022, "company_age": 2, "startup": True, "confidence": 0.9,
+            "is_d2c": True, "d2c_confidence": 0.9, "employee_count": "10-50",
+            "is_large_enterprise": False, "meta_ads_probability": 85, "founder_name": "Mock Founder"
+        }
+        
     try:
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
         prompt = f"""
-Given the text from the official website of '{company_name}', extract the name of the Founder or CEO.
-If not found, return 'Not Found'. Do not return any other text.
-Website Text:
-{website_text[:5000]}
+You are an expert business analyst assessing '{company_name}'.
+Read the website context below and extract the requested fields.
+Pay special attention to the founding year, whether they are a D2C brand, and their size.
+
+Website Context:
+{website_text[:12000]}
 """
         response = client.models.generate_content(
             model='gemini-3.5-flash',
             contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=CompanyProfile,
+            ),
         )
-        ans = response.text.strip()
-        return "" if "Not Found" in ans else ans
+        
+        result_json = response.text
+        data = json.loads(result_json)
+        return data
+        
     except Exception as e:
-        print(f"LLM Founder Extract Error: {e}")
-        return ""
+        print(f"LLM Profile Analysis Error for {company_name}: {e}")
+        # Default to safe values that won't skip the lead if API fails
+        return {
+            "founded_year": 0, "company_age": 0, "startup": True, "confidence": 1.0,
+            "is_d2c": True, "d2c_confidence": 1.0, "employee_count": "Unknown",
+            "is_large_enterprise": False, "meta_ads_probability": 50, "founder_name": ""
+        }

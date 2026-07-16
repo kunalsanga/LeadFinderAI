@@ -58,7 +58,11 @@ async def process_search(task_id: str, query: str):
         ALLOWED_TYPES = {
             "clothing_store", "corporate_office", "manufacturer", "store", 
             "beauty_salon", "cosmetics_store", "furniture_store", "home_goods_store", 
-            "electronics_store", "food", "shopping"
+            "electronics_store", "food", "shopping", "beauty", "wellness", "consumer goods"
+        }
+        REJECTED_TYPES = {
+            "hospital", "hotel", "gym", "school", "park", "restaurant", 
+            "tourist_attraction", "service", "government_office", "bank"
         }
         
         enriched_leads = []
@@ -73,7 +77,9 @@ async def process_search(task_id: str, query: str):
                 
             # Type filtering
             p_type = place_data.get("type", "").lower()
-            if p_type not in ALLOWED_TYPES and p_type != "business":
+            if any(rt in p_type for rt in REJECTED_TYPES):
+                continue
+            if p_type not in ALLOWED_TYPES and p_type != "business" and "headquarters" not in p_type and "corporate" not in p_type:
                 continue # Skip rejected types
                 
             # Fuzzy matching
@@ -92,43 +98,72 @@ async def process_search(task_id: str, query: str):
                 "Reviews": place_data.get("reviews", 0)
             }
             
-            # 2. Meta Ads Check
+            # 2. Meta Ads Check (Official API)
             ads_data = await check_meta_ads(lead["Company Name"])
             lead["Meta Ads (Yes/No)"] = "Yes" if ads_data.get("running_ads") else "No"
             
-            # 3. Website Scraping (Socials, Contact, D2C, Founder, Email)
+            # 3. Website Scraping and Unified LLM Analysis
             lead["LinkedIn"] = ""
             lead["Instagram"] = ""
+            lead["Facebook"] = ""
             lead["Contact Us"] = ""
+            lead["Careers Page"] = ""
             lead["Founder"] = ""
             lead["Email"] = ""
-            lead["D2C (Yes/No)"] = "No"
+            lead["D2C"] = False
+            lead["Startup"] = False
+            lead["Founded Year"] = 0
+            lead["Company Age"] = 0
+            lead["Meta Ads Probability"] = 0
+            lead["Marketing Technology"] = ""
             
             if lead["Website"]:
                 from services.scraper_service import scrape_company_website
-                from services.llm_service import is_company_d2c, extract_founder
+                from services.llm_service import analyze_company_profile
                 
                 web_data = await scrape_company_website(lead["Website"])
                 lead["LinkedIn"] = web_data.get("linkedin", "")
                 lead["Instagram"] = web_data.get("instagram", "")
+                lead["Facebook"] = web_data.get("facebook", "")
                 lead["Contact Us"] = web_data.get("contact_us", "")
+                lead["Careers Page"] = web_data.get("careers", "")
+                lead["Marketing Technology"] = ", ".join(web_data.get("tech_stack", []))
                 
-                # Check D2C
-                is_d2c = await is_company_d2c(lead["Company Name"], web_data.get("text", ""))
-                if not is_d2c:
-                    continue # Skip if not a D2C brand
-                lead["D2C (Yes/No)"] = "Yes"
+                # LLM Profiling
+                profile = await analyze_company_profile(lead["Company Name"], web_data.get("text", ""))
                 
-                # Extract founder
-                lead["Founder"] = await extract_founder(lead["Company Name"], web_data.get("text", ""))
+                # Strict Filters
+                if profile.get("company_age", 0) > 5 and profile.get("company_age", 0) != 0:
+                    continue
+                if not profile.get("startup", False) or profile.get("confidence", 0) < 0.70:
+                    continue
+                if not profile.get("is_d2c", False):
+                    continue
+                if profile.get("is_large_enterprise", False):
+                    continue
+                    
+                # Populate fields
+                lead["D2C"] = True
+                lead["Startup"] = True
+                lead["Founded Year"] = profile.get("founded_year", 0)
+                lead["Company Age"] = profile.get("company_age", 0)
+                lead["Meta Ads Probability"] = profile.get("meta_ads_probability", 50)
+                lead["Founder"] = profile.get("founder_name", "")
                 
                 # Emails
                 emails = await scrape_emails(lead["Website"])
                 lead["Email"] = ", ".join(emails) if emails else ""
                 
+            else:
+                # No website, skip startup filtering because we don't have enough data
+                continue
+                
             # 4. Lead Scoring
             lead["Place Type"] = p_type # pass to scorer
             lead["Lead Score"] = calculate_lead_score(lead)
+            
+            from services.lead_scorer import calculate_target_fit
+            lead["Target Fit"] = calculate_target_fit(lead["Lead Score"])
             
             enriched_leads.append(lead)
             

@@ -107,17 +107,35 @@ document.addEventListener('DOMContentLoaded', () => {
             if (lead['Lead Score'] >= 70) scoreClass = 'score-high';
             else if (lead['Lead Score'] >= 40) scoreClass = 'score-medium';
             
-            let linkedInHtml = lead.LinkedIn ? `<a href="${lead.LinkedIn}" target="_blank" class="text-primary"><i class="fa-brands fa-linkedin"></i></a>` : '-';
-            let instagramHtml = lead.Instagram ? `<a href="${lead.Instagram}" target="_blank" class="text-danger"><i class="fa-brands fa-instagram"></i></a>` : '-';
+            let linkedInHtml = lead.LinkedIn ? `<a href="${lead.LinkedIn}" target="_blank" class="text-primary me-2"><i class="fa-brands fa-linkedin"></i></a>` : '';
+            let instagramHtml = lead.Instagram ? `<a href="${lead.Instagram}" target="_blank" class="text-danger me-2"><i class="fa-brands fa-instagram"></i></a>` : '';
+            let facebookHtml = lead.Facebook ? `<a href="${lead.Facebook}" target="_blank" class="text-info"><i class="fa-brands fa-facebook"></i></a>` : '';
+            let socials = linkedInHtml + instagramHtml + facebookHtml;
+            if(!socials) socials = '-';
+            
+            let techHtml = lead['Marketing Technology'] ? `<small class="text-muted" style="max-width: 150px; display: inline-block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${lead['Marketing Technology']}">${lead['Marketing Technology']}</small>` : '-';
+            
+            let targetFitClass = "badge bg-secondary";
+            if (lead['Target Fit'].includes("Perfect") || lead['Target Fit'].includes("Good")) {
+                targetFitClass = "badge bg-success";
+            } else if (lead['Target Fit'].includes("Average")) {
+                targetFitClass = "badge bg-warning text-dark";
+            } else if (lead['Target Fit'].includes("Poor") || lead['Target Fit'].includes("Not Target")) {
+                targetFitClass = "badge bg-danger";
+            }
             
             tr.innerHTML = `
-                <td class="fw-semibold text-white">${lead['Company Name']}</td>
+                <td class="fw-semibold text-white">
+                    ${lead['Company Name']}
+                    ${lead['Founder'] ? `<br><small class="text-muted"><i class="fa-solid fa-user me-1"></i>${lead['Founder']}</small>` : ''}
+                </td>
                 <td>${websiteHtml}</td>
-                <td>${lead['Phone'] || '-'}</td>
-                <td>${lead['Email'] ? `<a href="mailto:${lead['Email'].split(',')[0]}" class="text-decoration-none text-light"><i class="fa-solid fa-envelope"></i></a>` : '-'}</td>
-                <td>${linkedInHtml}</td>
-                <td>${instagramHtml}</td>
-                <td>${lead['Founder'] || '-'}</td>
+                <td>${lead['Founded Year'] || '-'}</td>
+                <td>${lead['Company Age'] ? lead['Company Age'] + ' yrs' : '-'}</td>
+                <td>${lead['Email'] ? `<a href="mailto:${lead['Email'].split(',')[0]}" class="text-decoration-none text-light" title="${lead['Email']}"><i class="fa-solid fa-envelope"></i></a>` : '-'}</td>
+                <td>${socials}</td>
+                <td>${techHtml}</td>
+                <td><span class="${targetFitClass}">${lead['Target Fit']}</span></td>
                 <td><span class="score-badge ${scoreClass}">${lead['Lead Score']}/100</span></td>
             `;
             resultsTableBody.appendChild(tr);

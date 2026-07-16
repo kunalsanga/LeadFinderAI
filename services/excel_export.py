@@ -4,12 +4,21 @@ from typing import List, Dict
 def generate_excel(leads: List[Dict], filepath: str):
     df = pd.DataFrame(leads)
     
+    # Rename some internal keys to match final output exactly
+    rename_map = {
+        "Address": "Headquarters Address",
+        "Email": "Official Email",
+        "Contact Us": "Contact Page"
+    }
+    df.rename(columns=rename_map, inplace=True)
+    
     # Reorder columns if they exist
     preferred_order = [
-        "Company Name", "Website", "Phone", "Email", 
-        "LinkedIn", "Instagram", "Founder", "Contact Us",
-        "Lead Score", "D2C (Yes/No)", "Meta Ads (Yes/No)", 
-        "Category", "Address", "Google Rating", "Reviews"
+        "Company Name", "Founded Year", "Company Age", "Startup", "D2C", 
+        "Category", "Website", "Phone", "Official Email", "Founder", 
+        "LinkedIn", "Instagram", "Facebook", "Contact Page", "Careers Page", 
+        "Headquarters Address", "Google Rating", "Reviews", "Meta Ads Probability", 
+        "Marketing Technology", "Lead Score", "Target Fit"
     ]
     
     # Filter only columns that actually exist in the dataframe

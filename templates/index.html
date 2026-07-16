@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LeadFinder AI</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-glass border-bottom border-secondary mb-4">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="#">
+            <i class="fa-solid fa-robot text-primary me-2"></i>LeadFinder <span class="text-primary">AI</span>
+        </a>
+    </div>
+</nav>
+
+<div class="container main-container">
+    
+    <!-- Search Section -->
+    <div class="row justify-content-center mb-5 hero-section">
+        <div class="col-md-8 text-center">
+            <h1 class="display-4 fw-bold mb-3">Find Verified B2B Leads</h1>
+            <p class="lead text-muted mb-4">Search any query and we'll automatically enrich it with Google Places, Meta Ads, and Email data.</p>
+            
+            <form id="searchForm" class="d-flex position-relative shadow-lg rounded-pill p-1 bg-darker">
+                <input type="text" id="searchInput" class="form-control form-control-lg border-0 bg-transparent text-white ps-4 rounded-pill" placeholder='e.g. "Bengaluru D2C Brands"' required>
+                <button type="submit" class="btn btn-primary btn-lg rounded-pill px-4 ms-2 fw-semibold search-btn">
+                    <i class="fa-solid fa-magnifying-glass me-2"></i>Find Companies
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Progress Section -->
+    <div id="progressSection" class="row mb-5 d-none">
+        <div class="col-12">
+            <div class="card bg-glass border-0 shadow">
+                <div class="card-body p-4 text-center">
+                    <h5 id="statusText" class="mb-3">Starting search...</h5>
+                    <div class="progress" style="height: 20px;">
+                        <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%;">0%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div id="statsSection" class="row g-4 mb-5 d-none">
+        <div class="col-md-3">
+            <div class="card stat-card h-100 bg-glass border-0">
+                <div class="card-body text-center">
+                    <i class="fa-solid fa-building fa-2x text-info mb-2"></i>
+                    <h3 id="statTotal" class="fw-bold">0</h3>
+                    <p class="text-muted mb-0">Companies Found</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card h-100 bg-glass border-0">
+                <div class="card-body text-center">
+                    <i class="fa-solid fa-check-circle fa-2x text-success mb-2"></i>
+                    <h3 id="statValid" class="fw-bold">0</h3>
+                    <p class="text-muted mb-0">Valid Leads</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card h-100 bg-glass border-0">
+                <div class="card-body text-center">
+                    <i class="fa-brands fa-meta fa-2x text-primary mb-2"></i>
+                    <h3 id="statMeta" class="fw-bold">0</h3>
+                    <p class="text-muted mb-0">Meta Advertisers</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card h-100 bg-glass border-0">
+                <div class="card-body text-center">
+                    <i class="fa-solid fa-star fa-2x text-warning mb-2"></i>
+                    <h3 id="statScore" class="fw-bold">0</h3>
+                    <p class="text-muted mb-0">Avg Lead Score</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Table -->
+    <div id="resultsSection" class="card bg-glass border-0 shadow mb-5 d-none">
+        <div class="card-header border-bottom border-secondary bg-transparent d-flex justify-content-between align-items-center py-3">
+            <h5 class="mb-0 fw-bold"><i class="fa-solid fa-list me-2"></i>Verified Leads</h5>
+            <div class="export-buttons">
+                <button id="exportCompanies" class="btn btn-sm btn-outline-warning me-2">
+                    <i class="fa-solid fa-list me-1"></i>Raw Companies
+                </button>
+                <button id="exportExcel" class="btn btn-sm btn-outline-success me-2">
+                    <i class="fa-solid fa-file-excel me-1"></i>Excel
+                </button>
+                <button id="exportCsv" class="btn btn-sm btn-outline-info">
+                    <i class="fa-solid fa-file-csv me-1"></i>CSV
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover mb-0 align-middle">
+                    <thead class="table-darker">
+                        <tr>
+                            <th>Company Name</th>
+                            <th>Category</th>
+                            <th>Website</th>
+                            <th>Phone</th>
+                            <th>Email</th>
+                            <th>Ads</th>
+                            <th>Rating</th>
+                            <th>Score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsTableBody">
+                        <!-- Rows will be injected here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Bootstrap Bundle JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Custom JS -->
+<script src="/static/js/main.js"></script>
+</body>
+</html>
